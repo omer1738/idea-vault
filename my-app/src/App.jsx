@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import "./App.css";
 
-const API_URL = "http://localhost:5000/api/ideas";
-
+const API_URL = "https://idea-vault-qwkm.onrender.com/api/ideas";
 function App() {
   const [ideas, setIdeas] = useState([]);
   const [title, setTitle] = useState("");
