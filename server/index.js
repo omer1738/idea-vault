@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const ideaRoutes = require("./routes/ideas");
+const authRoutes = require("./routes/auth");
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/ideas", ideaRoutes);
+app.use("/api/auth", authRoutes);
 
 const PORT = 5000;
 app.listen(PORT, () => {

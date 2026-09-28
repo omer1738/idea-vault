@@ -1,22 +1,61 @@
 import { useState, useEffect } from "react";
+import { GoogleLogin } from "@react-oauth/google";
 import "./App.css";
 
-const API_URL = "https://idea-vault-qwkm.onrender.com/api/ideas";
+const API = "https://idea-vault-qwkm.onrender.com";
+const API_URL = `${API}/api/ideas`;
+
 function App() {
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem("user");
+    return saved ? JSON.parse(saved) : null;
+  });
   const [ideas, setIdeas] = useState([]);
   const [title, setTitle] = useState("");
   const [tag, setTag] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchIdeas();
-  }, []);
+    if (user) fetchIdeas();
+  }, [user]);
+
+  function authHeaders() {
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    };
+  }
+
+  async function handleGoogleLogin(credentialResponse) {
+    try {
+      const res = await fetch(`${API}/api/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential: credentialResponse.credential }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      setUser(data.user);
+    } catch (err) {
+      console.error("Login failed:", err);
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setUser(null);
+    setIdeas([]);
+  }
 
   async function fetchIdeas() {
     try {
-      const res = await fetch(API_URL);
-      const data = await res.json();
-      setIdeas(data);
+      const res = await fetch(API_URL, { headers: authHeaders() });
+      if (res.status === 401) return logout();
+      setIdeas(await res.json());
     } catch (err) {
       console.error("Failed to fetch ideas:", err);
     } finally {
@@ -27,11 +66,10 @@ function App() {
   async function addIdea(e) {
     e.preventDefault();
     if (!title.trim()) return;
-
     try {
       const res = await fetch(API_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ title, tag: tag || "General" }),
       });
       const newIdea = await res.json();
@@ -47,7 +85,7 @@ function App() {
     try {
       const res = await fetch(`${API_URL}/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ favorite: !currentValue }),
       });
       const updated = await res.json();
@@ -59,18 +97,43 @@ function App() {
 
   async function deleteIdea(id) {
     try {
-      await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+      await fetch(`${API_URL}/${id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
       setIdeas(ideas.filter((idea) => idea._id !== id));
     } catch (err) {
       console.error("Failed to delete idea:", err);
     }
   }
 
+  if (!user) {
+    return (
+      <div className="app">
+        <div className="container" style={{ textAlign: "center" }}>
+          <h1>💡 Idea Vault</h1>
+          <p className="subtitle">Sign in to save your ideas.</p>
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <GoogleLogin
+              onSuccess={handleGoogleLogin}
+              onError={() => console.error("Google login failed")}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <div className="container">
         <h1>💡 Idea Vault</h1>
-        <p className="subtitle">Save it before you forget it.</p>
+        <p className="subtitle">
+          Signed in as {user.email}{" "}
+          <button onClick={logout} style={{ marginLeft: "0.5rem" }}>
+            Log out
+          </button>
+        </p>
 
         <form onSubmit={addIdea} className="idea-form">
           <input
@@ -107,10 +170,7 @@ function App() {
                 >
                   ★
                 </button>
-                <button
-                  onClick={() => deleteIdea(idea._id)}
-                  className="delete"
-                >
+                <button onClick={() => deleteIdea(idea._id)} className="delete">
                   ✕
                 </button>
               </div>

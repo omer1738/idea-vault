@@ -1,47 +1,45 @@
 const express = require("express");
 const router = express.Router();
 const Idea = require("../models/Idea");
+const auth = require("../middleware/auth");
 
-// GET all ideas
+router.use(auth);
+
 router.get("/", async (req, res) => {
   try {
-    const ideas = await Idea.find().sort({ createdAt: -1 });
+    const ideas = await Idea.find({ userId: req.userId }).sort({ createdAt: -1 });
     res.json(ideas);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// POST a new idea
 router.post("/", async (req, res) => {
   try {
     const { title, tag } = req.body;
-    const newIdea = new Idea({ title, tag });
-    const savedIdea = await newIdea.save();
-    res.status(201).json(savedIdea);
+    const idea = await Idea.create({ title, tag, userId: req.userId });
+    res.status(201).json(idea);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-// PATCH (toggle favorite / edit)
 router.patch("/:id", async (req, res) => {
   try {
-    const updatedIdea = await Idea.findByIdAndUpdate(
-      req.params.id,
-      req.body,
+    const idea = await Idea.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId },
+      { favorite: req.body.favorite },
       { new: true }
     );
-    res.json(updatedIdea);
+    res.json(idea);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-// DELETE an idea
 router.delete("/:id", async (req, res) => {
   try {
-    await Idea.findByIdAndDelete(req.params.id);
+    await Idea.findOneAndDelete({ _id: req.params.id, userId: req.userId });
     res.json({ message: "Idea deleted" });
   } catch (err) {
     res.status(400).json({ error: err.message });
