@@ -35,7 +35,6 @@ function App() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
       setUser(data.user);
@@ -107,33 +106,85 @@ function App() {
     }
   }
 
+  // ---------- LANDING PAGE (logged out) ----------
   if (!user) {
     return (
-      <div className="app">
-        <div className="container" style={{ textAlign: "center" }}>
-          <h1>💡 Idea Vault</h1>
-          <p className="subtitle">Sign in to save your ideas.</p>
-          <div style={{ display: "flex", justifyContent: "center" }}>
+      <div className="landing">
+        <div className="glow glow1" />
+        <div className="glow glow2" />
+
+        <nav className="nav">
+          <span className="logo">💡 Idea Vault</span>
+        </nav>
+
+        <section className="hero">
+          <span className="badge">✨ Your second brain for ideas</span>
+          <h1 className="hero-title">
+            Capture every idea
+            <br />
+            <span className="gradient">before it disappears.</span>
+          </h1>
+          <p className="hero-sub">
+            A clean, private space to save, tag, and favorite your ideas.
+            Sign in once and they follow you everywhere.
+          </p>
+
+          <div className="login-card">
             <GoogleLogin
               onSuccess={handleGoogleLogin}
               onError={() => console.error("Google login failed")}
+              theme="filled_black"
+              shape="pill"
+              size="large"
             />
+            <small>🔒 Secure sign-in with Google. We never see your password.</small>
           </div>
-        </div>
+
+          <div className="features">
+            <div className="feature">
+              <span>⚡</span>
+              <h3>Instant capture</h3>
+              <p>Type it, tag it, done in seconds.</p>
+            </div>
+            <div className="feature">
+              <span>⭐</span>
+              <h3>Favorite the best</h3>
+              <p>Star the ideas worth building.</p>
+            </div>
+            <div className="feature">
+              <span>🔐</span>
+              <h3>Private by default</h3>
+              <p>Only you can see your vault.</p>
+            </div>
+          </div>
+        </section>
+
+        <footer className="footer">Built with React, Node.js and MongoDB</footer>
       </div>
     );
   }
 
+  // ---------- IDEAS PAGE (logged in) ----------
   return (
-    <div className="app">
-      <div className="container">
-        <h1>💡 Idea Vault</h1>
-        <p className="subtitle">
-          Signed in as {user.email}{" "}
-          <button onClick={logout} style={{ marginLeft: "0.5rem" }}>
+    <div className="landing">
+      <div className="glow glow1" />
+      <div className="glow glow2" />
+
+      <nav className="nav">
+        <span className="logo">💡 Idea Vault</span>
+        <div className="user-box">
+          {user.picture && (
+            <img src={user.picture} alt="" referrerPolicy="no-referrer" />
+          )}
+          <span className="user-email">{user.email}</span>
+          <button onClick={logout} className="logout">
             Log out
           </button>
-        </p>
+        </div>
+      </nav>
+
+      <div className="container">
+        <h2 className="page-title">Your ideas</h2>
 
         <form onSubmit={addIdea} className="idea-form">
           <input
@@ -152,7 +203,6 @@ function App() {
 
         <div className="idea-list">
           {loading && <p className="empty">Loading...</p>}
-
           {!loading && ideas.length === 0 && (
             <p className="empty">No ideas yet. Add your first one above.</p>
           )}
